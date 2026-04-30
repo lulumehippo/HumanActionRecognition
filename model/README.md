@@ -32,6 +32,5 @@ After training finishes, save the new model with:
 ```python
 model.save("model/action_model.keras")
 ```
-<<<<<<< HEAD
 
 Then copy the saved file into this `model/` folder.
