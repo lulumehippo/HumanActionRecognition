@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>STARK INDUSTRIES — Human Action Recognition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       ROOT VARIABLES
+    ═══════════════════════════════════════════════════════════════ */
+    :root {
+      --bg:          #020c18;
+      --panel:       #040f1e;
+      --border:      #0a4a7a;
+      --cyan:        #00d4ff;
+      --cyan-dim:    #0088aa;
+      --cyan-glow:   rgba(0,212,255,0.15);
+      --blue:        #0055cc;
+      --orange:      #ff6600;
+      --orange-glow: rgba(255,102,0,0.3);
+      --text:        #c8e8ff;
+      --text-dim:    #4a7a99;
+      --danger:      #ff3333;
+      --success:     #00ff88;
+      --font-head:   'Orbitron', monospace;
+      --font-body:   'Rajdhani', sans-serif;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+
+    /* ── Scanline overlay ─────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ── Grid background ──────────────────────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,100,180,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,100,180,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════ */
+    #app {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 0 24px 24px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER / TOP BAR
+    ═══════════════════════════════════════════════════════════════ */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      position: absolute; bottom: -4px; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scanH 3s linear infinite;
+    }
+
+    @keyframes scanH {
+      0%   { background-position: -100% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .arc-reactor {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      box-shadow: 0 0 16px var(--cyan), inset 0 0 16px rgba(0,212,255,0.2);
+      animation: reactorPulse 2s ease-in-out infinite;
+    }
+
+    .arc-reactor::before {
+      content: '';
+      position: absolute;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--cyan-dim);
+      animation: spin 4s linear infinite;
+    }
+
+    .arc-reactor::after {
+      content: '';
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan), 0 0 24px var(--cyan);
+    }
+
+    @keyframes reactorPulse {
+      0%,100% { box-shadow: 0 0 16px var(--cyan), inset 0 0 16px rgba(0,212,255,0.2); }
+      50%      { box-shadow: 0 0 28px var(--cyan), inset 0 0 28px rgba(0,212,255,0.35); }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .logo-text h1 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: var(--cyan);
+      letter-spacing: 4px;
+      text-shadow: 0 0 20px var(--cyan);
+    }
+
+    .logo-text p {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      font-family: var(--font-head);
+      font-weight: 400;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .status-label {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      font-family: var(--font-head);
+    }
+
+    .status-value {
+      font-size: 0.85rem;
+      color: var(--cyan);
+      font-family: var(--font-head);
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       MAIN GRID
+    ═══════════════════════════════════════════════════════════════ */
+    main {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      gap: 20px;
+      padding-top: 20px;
+      align-items: start;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PANEL COMPONENT
+    ═══════════════════════════════════════════════════════════════ */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      position: relative;
+      padding: 20px;
+    }
+
+    /* Corner brackets */
+    .panel::before, .panel::after,
+    .panel .corner-br, .panel .corner-bl {
+      content: '';
+      position: absolute;
+      width: 12px; height: 12px;
+    }
+
+    .panel::before {
+      top: -1px; left: -1px;
+      border-top: 2px solid var(--cyan);
+      border-left: 2px solid var(--cyan);
+    }
+
+    .panel::after {
+      top: -1px; right: -1px;
+      border-top: 2px solid var(--cyan);
+      border-right: 2px solid var(--cyan);
+    }
+
+    .panel .corner-br {
+      bottom: -1px; right: -1px;
+      border-bottom: 2px solid var(--cyan);
+      border-right: 2px solid var(--cyan);
+    }
+
+    .panel .corner-bl {
+      bottom: -1px; left: -1px;
+      border-bottom: 2px solid var(--cyan);
+      border-left: 2px solid var(--cyan);
+    }
+
+    .panel-title {
+      font-family: var(--font-head);
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title::before {
+      content: '';
+      width: 20px; height: 1px;
+      background: var(--cyan);
+      box-shadow: 0 0 6px var(--cyan);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LEFT PANEL — SYSTEM INFO
+    ═══════════════════════════════════════════════════════════════ */
+    .sys-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(10,74,122,0.4);
+      font-size: 0.8rem;
+    }
+
+    .sys-row:last-child { border-bottom: none; }
+
+    .sys-key {
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      font-family: var(--font-head);
+    }
+
+    .sys-val {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    /* Mini bar */
+    .mini-bar-wrap {
+      margin-top: 20px;
+    }
+
+    .mini-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      font-family: var(--font-head);
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .mini-bar {
+      height: 4px;
+      background: rgba(0,212,255,0.1);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: 2px;
+      box-shadow: 0 0 6px var(--cyan);
+      animation: fillIn 2s ease-out forwards;
+    }
+
+    @keyframes fillIn {
+      from { width: 0%; }
+    }
+
+    /* Hexagonal decorative element */
+    .hex-group {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 20px;
+    }
+
+    .hex {
+      width: 24px; height: 24px;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: var(--cyan-glow);
+      border: 0;
+      animation: hexPulse 2s ease-in-out infinite;
+    }
+
+    .hex:nth-child(2) { animation-delay: 0.3s; }
+    .hex:nth-child(3) { animation-delay: 0.6s; }
+    .hex:nth-child(4) { animation-delay: 0.9s; }
+    .hex:nth-child(5) { animation-delay: 1.2s; }
+
+    @keyframes hexPulse {
+      0%,100% { background: rgba(0,212,255,0.08); }
+      50%      { background: rgba(0,212,255,0.28); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       CENTER PANEL — MAIN HUD
+    ═══════════════════════════════════════════════════════════════ */
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Radar / Upload HUD ───────────────────────────────────────── */
+    .radar-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .radar-container {
+      width: 300px; height: 300px;
+      position: relative;
+      margin: 0 auto 20px;
+    }
+
+    /* Outer rings */
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+    }
+
+    .ring-1 { inset: 0; border-color: rgba(0,212,255,0.3); }
+    .ring-2 { inset: 20px; border-color: rgba(0,212,255,0.2); }
+    .ring-3 { inset: 60px; border-color: rgba(0,212,255,0.2); }
+    .ring-4 { inset: 100px; border-color: rgba(0,212,255,0.15); }
+
+    /* Cross-hair lines */
+    .crosshair {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .crosshair::before {
+      content: '';
+      position: absolute;
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.2) 30%, rgba(0,212,255,0.5) 50%, rgba(0,212,255,0.2) 70%, transparent 100%);
+    }
+
+    .crosshair::after {
+      content: '';
+      position: absolute;
+      height: 100%; width: 1px;
+      background: linear-gradient(0deg, transparent 0%, rgba(0,212,255,0.2) 30%, rgba(0,212,255,0.5) 50%, rgba(0,212,255,0.2) 70%, transparent 100%);
+    }
+
+    /* Sweep animation */
+    .sweep {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    .sweep::after {
+      content: '';
+      position: absolute;
+      width: 50%; height: 50%;
+      top: 0; right: 0;
+      transform-origin: bottom left;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(0,212,255,0.15) 60deg,
+        transparent 60deg
+      );
+      animation: sweepRotate 3s linear infinite;
+    }
+
+    @keyframes sweepRotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* Upload zone (center of radar) */
+    .upload-zone {
+      position: absolute;
+      inset: 40px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: rgba(0,15,30,0.8);
+      border: 1px dashed rgba(0,212,255,0.3);
+      gap: 8px;
+    }
+
+    .upload-zone:hover {
+      border-color: var(--cyan);
+      background: rgba(0,212,255,0.05);
+    }
+
+    .upload-zone:hover .upload-icon {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 12px var(--cyan));
+    }
+
+    .upload-icon {
+      font-size: 2rem;
+      transition: all 0.3s;
+      filter: drop-shadow(0 0 6px var(--cyan));
+    }
+
+    .upload-text {
+      font-family: var(--font-head);
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .upload-sub {
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    /* ── Analyzing overlay ────────────────────────────────────────── */
+    .analyzing-overlay {
+      position: absolute;
+      inset: 40px;
+      border-radius: 50%;
+      background: rgba(0,15,30,0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .analyzing-overlay.active { display: flex; }
+
+    .spin-ring {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--cyan);
+      border-right-color: rgba(0,212,255,0.4);
+      animation: spinFast 0.8s linear infinite;
+      box-shadow: 0 0 12px rgba(0,212,255,0.4);
+    }
+
+    @keyframes spinFast {
+      to { transform: rotate(360deg); }
+    }
+
+    .analyzing-text {
+      font-family: var(--font-head);
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      animation: textFlicker 0.8s ease-in-out infinite;
+    }
+
+    @keyframes textFlicker {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.4; }
+    }
+
+    /* Dot indicators around the radar */
+    .radar-dots {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+    }
+
+    .rdot {
+      position: absolute;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 6px var(--cyan);
+    }
+
+    .rdot-1 { top: 10px; left: 50%; transform: translateX(-50%); }
+    .rdot-2 { bottom: 10px; left: 50%; transform: translateX(-50%); }
+    .rdot-3 { left: 10px; top: 50%; transform: translateY(-50%); }
+    .rdot-4 { right: 10px; top: 50%; transform: translateY(-50%); }
+
+    /* ── File info bar ────────────────────────────────────────────── */
+    .file-info-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(0,30,60,0.5);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      min-height: 44px;
+    }
+
+    .file-name {
+      font-family: var(--font-head);
+      font-size: 0.65rem;
+      color: var(--cyan);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
+    }
+
+    .file-placeholder { color: var(--text-dim); font-size: 0.7rem; }
+
+    /* ── Analyze button ───────────────────────────────────────────── */
+    #analyzeBtn {
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: var(--font-head);
+      font-size: 0.75rem;
+      letter-spacing: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+    }
+
+    #analyzeBtn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.15), transparent);
+      transition: left 0.4s;
+    }
+
+    #analyzeBtn:hover:not(:disabled)::before { left: 100%; }
+
+    #analyzeBtn:hover:not(:disabled) {
+      background: rgba(0,212,255,0.1);
+      box-shadow: 0 0 20px rgba(0,212,255,0.3), inset 0 0 20px rgba(0,212,255,0.05);
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    #analyzeBtn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESULT PANEL
+    ═══════════════════════════════════════════════════════════════ */
+    .result-panel { display: none; }
+    .result-panel.active { display: block; }
+
+    .prediction-display {
+      text-align: center;
+      padding: 20px;
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.2);
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .prediction-display::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: slideLine 2s linear infinite;
+    }
+
+    @keyframes slideLine {
+      from { background-position: -100% 0; }
+      to   { background-position: 200% 0; }
+    }
+
+    .pred-label-small {
+      font-family: var(--font-head);
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .pred-class {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--cyan);
+      text-shadow: 0 0 30px var(--cyan);
+      letter-spacing: 3px;
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%,100% { text-shadow: 0 0 20px var(--cyan); }
+      50%      { text-shadow: 0 0 40px var(--cyan), 0 0 80px rgba(0,212,255,0.4); }
+    }
+
+    .pred-confidence {
+      font-family: var(--font-head);
+      font-size: 0.75rem;
+      color: var(--orange);
+      margin-top: 8px;
+      letter-spacing: 2px;
+    }
+
+    /* Confidence bars */
+    .conf-bars { display: flex; flex-direction: column; gap: 8px; }
+
+    .conf-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 50px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .conf-class {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      font-family: var(--font-head);
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conf-bar-bg {
+      height: 6px;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .conf-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      box-shadow: 0 0 6px rgba(0,212,255,0.5);
+      transition: width 0.8s ease-out;
+    }
+
+    .conf-bar-fill.top {
+      background: linear-gradient(90deg, var(--orange), #ffaa00);
+      box-shadow: 0 0 8px rgba(255,102,0,0.6);
+    }
+
+    .conf-pct {
+      font-size: 0.65rem;
+      font-family: var(--font-head);
+      color: var(--cyan);
+      text-align: right;
+    }
+
+    .conf-pct.top { color: var(--orange); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RIGHT PANEL
+    ═══════════════════════════════════════════════════════════════ */
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid rgba(10,74,122,0.4);
+      font-size: 0.75rem;
+      font-family: var(--font-head);
+      font-weight: 400;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-item.highlighted {
+      border-color: var(--orange);
+      color: var(--orange);
+      background: var(--orange-glow);
+      text-shadow: 0 0 10px var(--orange);
+    }
+
+    .action-item.highlighted::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--orange);
+      box-shadow: 0 0 8px var(--orange);
+    }
+
+    .action-num {
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      width: 16px;
+    }
+
+    .action-item.highlighted .action-num { color: var(--orange); }
+
+    /* Mini circular gauge */
+    .gauge-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .gauge {
+      width: 90px; height: 90px;
+      position: relative;
+    }
+
+    .gauge svg { transform: rotate(-90deg); }
+
+    .gauge-bg { fill: none; stroke: rgba(0,212,255,0.1); stroke-width: 6; }
+    .gauge-fill {
+      fill: none;
+      stroke: var(--cyan);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 245;
+      stroke-dashoffset: 245;
+      filter: drop-shadow(0 0 4px var(--cyan));
+      transition: stroke-dashoffset 1s ease-out;
+    }
+
+    .gauge-text {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: var(--font-head);
+    }
+
+    .gauge-pct { font-size: 1.1rem; color: var(--cyan); font-weight: 700; }
+    .gauge-lbl { font-size: 0.5rem; color: var(--text-dim); letter-spacing: 1px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════════════════════════ */
+    footer {
+      padding: 12px 0 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-text {
+      font-family: var(--font-head);
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-tag {
+      font-family: var(--font-head);
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border: 1px solid rgba(10,74,122,0.4);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       CORNER DECORATIONS (top-level)
+    ═══════════════════════════════════════════════════════════════ */
+    .page-corner {
+      position: fixed;
+      width: 30px; height: 30px;
+      z-index: 100;
+    }
+
+    .page-corner.tl { top: 8px; left: 8px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .page-corner.tr { top: 8px; right: 8px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+    .page-corner.bl { bottom: 8px; left: 8px; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .page-corner.br { bottom: 8px; right: 8px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       ERROR MESSAGE
+    ═══════════════════════════════════════════════════════════════ */
+    .error-msg {
+      display: none;
+      padding: 10px 14px;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-family: var(--font-head);
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      background: rgba(255,51,51,0.08);
+    }
+
+    .error-msg.active { display: block; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HIDDEN FILE INPUT
+    ═══════════════════════════════════════════════════════════════ */
+    #fileInput { display: none; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       DRAG & DROP
+    ═══════════════════════════════════════════════════════════════ */
+    .upload-zone.drag-over {
+      border-color: var(--orange);
+      background: rgba(255,102,0,0.06);
+      box-shadow: 0 0 20px rgba(255,102,0,0.2), inset 0 0 20px rgba(255,102,0,0.05);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Page corner decorations -->
+<div class="page-corner tl"></div>
+<div class="page-corner tr"></div>
+<div class="page-corner bl"></div>
+<div class="page-corner br"></div>
+
+<div id="app">
+
+  <!-- ══════════════ HEADER ══════════════ -->
+  <header>
+    <div class="logo">
+      <div class="arc-reactor"></div>
+      <div class="logo-text">
+        <h1>STARK INDUSTRIES</h1>
+        <p>HUMAN ACTION RECOGNITION SYSTEM</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-item">
+        <span class="status-label">SYSTEM</span>
+        <span class="status-value">ONLINE</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">MODEL</span>
+        <span class="status-value">LSTM v1</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">CLASSES</span>
+        <span class="status-value">07</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">STATUS</span>
+        <div class="status-dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <main>
+
+    <!-- ── LEFT PANEL ────────────────────── -->
+    <div class="panel">
+      <div class="corner-br"></div><div class="corner-bl"></div>
+      <div class="panel-title">SYSTEM INFO</div>
+
+      <div class="sys-row">
+        <span class="sys-key">FRAMEWORK</span>
+        <span class="sys-val">TensorFlow</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">POSE ENGINE</span>
+        <span class="sys-val">MediaPipe</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">ARCHITECTURE</span>
+        <span class="sys-val">2× LSTM</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">INPUT SHAPE</span>
+        <span class="sys-val">30 × 99</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">LANDMARKS</span>
+        <span class="sys-val">33 pts</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">FRAME RATE</span>
+        <span class="sys-val">30 FPS</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">PARAMS</span>
+        <span class="sys-val">170 K</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">EPOCHS</span>
+        <span class="sys-val">100</span>
+      </div>
+
+      <div class="mini-bar-wrap">
+        <div class="mini-bar-label"><span>LSTM LAYER 1</span><span>128 UNITS</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:80%"></div></div>
+
+        <div class="mini-bar-label"><span>LSTM LAYER 2</span><span>64 UNITS</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:50%"></div></div>
+
+        <div class="mini-bar-label"><span>DENSE LAYER</span><span>64 UNITS</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:50%"></div></div>
+
+        <div class="mini-bar-label"><span>OUTPUT LAYER</span><span>7 CLASSES</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:22%"></div></div>
+      </div>
+
+      <div class="hex-group">
+        <div class="hex"></div>
+        <div class="hex"></div>
+        <div class="hex"></div>
+        <div class="hex"></div>
+        <div class="hex"></div>
+      </div>
+    </div>
+
+    <!-- ── CENTER ────────────────────────── -->
+    <div class="center-panel">
+
+      <!-- RADAR / UPLOAD -->
+      <div class="panel radar-panel">
+        <div class="corner-br"></div><div class="corner-bl"></div>
+        <div class="panel-title">TARGET ACQUISITION</div>
+
+        <div class="radar-container">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <div class="ring ring-4"></div>
+          <div class="crosshair"></div>
+          <div class="sweep"></div>
+
+          <div class="radar-dots">
+            <div class="rdot rdot-1"></div>
+            <div class="rdot rdot-2"></div>
+            <div class="rdot rdot-3"></div>
+            <div class="rdot rdot-4"></div>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="upload-zone" id="uploadZone">
+            <span class="upload-icon">🎯</span>
+            <span class="upload-text">UPLOAD VIDEO<br><span class="upload-sub">AVI · MP4 · MOV</span></span>
+          </div>
+
+          <!-- Analyzing overlay -->
+          <div class="analyzing-overlay" id="analyzingOverlay">
+            <div class="spin-ring"></div>
+            <span class="analyzing-text">ANALYZING...</span>
+          </div>
+        </div>
+
+        <div class="file-info-bar">
+          <span class="file-name" id="fileName">
+            <span class="file-placeholder">NO TARGET ACQUIRED</span>
+          </span>
+          <span style="font-size:0.65rem; color:var(--text-dim); font-family:var(--font-head)" id="fileSize"></span>
+        </div>
+
+        <div class="error-msg" id="errorMsg">⚠ ERROR: <span id="errorText"></span></div>
+
+        <input type="file" id="fileInput" accept=".avi,.mp4,.mov,.mkv" />
+
+        <button id="analyzeBtn" disabled>◈ INITIATE ANALYSIS</button>
+      </div>
+
+      <!-- RESULT -->
+      <div class="panel result-panel" id="resultPanel">
+        <div class="corner-br"></div><div class="corner-bl"></div>
+        <div class="panel-title">ANALYSIS RESULT</div>
+
+        <div class="prediction-display">
+          <div class="pred-label-small">DETECTED ACTION</div>
+          <div class="pred-class" id="predClass">—</div>
+          <div class="pred-confidence" id="predConf">CONFIDENCE: —%</div>
+        </div>
+
+        <div class="panel-title" style="margin-bottom:12px">PROBABILITY DISTRIBUTION</div>
+        <div class="conf-bars" id="confBars"></div>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT PANEL ───────────────────── -->
+    <div class="panel">
+      <div class="corner-br"></div><div class="corner-bl"></div>
+      <div class="panel-title">ACTION CLASSES</div>
+
+      <div class="action-list" id="actionList">
+        {% for cls in classes %}
+        <div class="action-item" id="action-{{ loop.index0 }}">
+          <span class="action-num">{{ '%02d'|format(loop.index) }}</span>
+          {{ cls }}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge">
+          <svg viewBox="0 0 90 90" width="90" height="90">
+            <circle class="gauge-bg" cx="45" cy="45" r="39"/>
+            <circle class="gauge-fill" id="gaugeFill" cx="45" cy="45" r="39"/>
+          </svg>
+          <div class="gauge-text">
+            <span class="gauge-pct" id="gaugePct">—</span>
+            <span class="gauge-lbl">CONF %</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══════════════ FOOTER ══════════════ -->
+  <footer>
+    <span class="footer-text">© STARK INDUSTRIES · HUMAN ACTION RECOGNITION · AI COURSE PROJECT</span>
+    <div class="footer-right">
+      <span class="footer-tag">MediaPipe</span>
+      <span class="footer-tag">TensorFlow</span>
+      <span class="footer-tag">LSTM</span>
+      <span class="footer-tag">Flask</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  JARVIS — Client-side logic
+// ══════════════════════════════════════════════════════════════════
+
+const uploadZone      = document.getElementById('uploadZone');
+const fileInput       = document.getElementById('fileInput');
+const analyzeBtn      = document.getElementById('analyzeBtn');
+const fileName        = document.getElementById('fileName');
+const fileSize        = document.getElementById('fileSize');
+const analyzingOverlay= document.getElementById('analyzingOverlay');
+const resultPanel     = document.getElementById('resultPanel');
+const predClass       = document.getElementById('predClass');
+const predConf        = document.getElementById('predConf');
+const confBars        = document.getElementById('confBars');
+const errorMsg        = document.getElementById('errorMsg');
+const errorText       = document.getElementById('errorText');
+const gaugeFill       = document.getElementById('gaugeFill');
+const gaugePct        = document.getElementById('gaugePct');
+
+let selectedFile = null;
+
+// ── File selection ─────────────────────────────────────────────────
+uploadZone.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+// ── Drag & Drop ────────────────────────────────────────────────────
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('drag-over');
+});
+
+['dragleave', 'dragend'].forEach(evt =>
+  uploadZone.addEventListener(evt, () => uploadZone.classList.remove('drag-over'))
+);
+
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['avi','mp4','mov','mkv'].includes(ext)) {
+    showError('Unsupported format. Use AVI, MP4, MOV, or MKV.');
+    return;
+  }
+  selectedFile = file;
+  fileName.innerHTML = `<span style="color:var(--cyan)">${file.name}</span>`;
+  fileSize.textContent = formatBytes(file.size);
+  analyzeBtn.disabled  = false;
+  hideError();
+  resultPanel.classList.remove('active');
+  clearHighlights();
+}
+
+// ── Analysis ───────────────────────────────────────────────────────
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  // UI: scanning state
+  analyzeBtn.disabled = true;
+  analyzingOverlay.classList.add('active');
+  resultPanel.classList.remove('active');
+  hideError();
+  clearHighlights();
+
+  const formData = new FormData();
+  formData.append('video', selectedFile);
+
+  try {
+    const res  = await fetch('/predict', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!data.success) {
+      showError(data.error || 'Analysis failed.');
+    } else {
+      renderResult(data);
+    }
+  } catch (err) {
+    showError('Connection error. Make sure the server is running.');
+  } finally {
+    analyzingOverlay.classList.remove('active');
+    analyzeBtn.disabled = false;
+  }
+});
+
+// ── Render result ─────────────────────────────────────────────────
+function renderResult(data) {
+  predClass.textContent = data.label.toUpperCase();
+  predConf.textContent  = `CONFIDENCE: ${data.confidence.toFixed(1)}%`;
+
+  // Confidence bars
+  confBars.innerHTML = '';
+  data.scores.forEach((s, idx) => {
+    const isTop = idx === 0;
+    confBars.innerHTML += `
+      <div class="conf-row">
+        <span class="conf-class">${s.label}</span>
+        <div class="conf-bar-bg">
+          <div class="conf-bar-fill ${isTop ? 'top' : ''}"
+               style="width:0%"
+               data-target="${s.score}"></div>
+        </div>
+        <span class="conf-pct ${isTop ? 'top' : ''}">${s.score.toFixed(1)}%</span>
+      </div>`;
+  });
+
+  resultPanel.classList.add('active');
+
+  // Animate bars after render
+  setTimeout(() => {
+    confBars.querySelectorAll('.conf-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.target + '%';
+    });
+  }, 50);
+
+  // Highlight matching action in right panel
+  highlightAction(data.label);
+
+  // Gauge
+  updateGauge(data.confidence);
+}
+
+// ── Highlight right panel ─────────────────────────────────────────
+function highlightAction(label) {
+  clearHighlights();
+  document.querySelectorAll('.action-item').forEach(el => {
+    if (el.textContent.trim().includes(label)) {
+      el.classList.add('highlighted');
+    }
+  });
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.action-item').forEach(el =>
+    el.classList.remove('highlighted')
+  );
+}
+
+// ── Gauge ─────────────────────────────────────────────────────────
+function updateGauge(pct) {
+  const circumference = 245;
+  const offset = circumference - (pct / 100) * circumference;
+  gaugeFill.style.strokeDashoffset = offset;
+  gaugePct.textContent = Math.round(pct) + '%';
+}
+
+// ── Error / util ──────────────────────────────────────────────────
+function showError(msg) {
+  errorText.textContent = msg;
+  errorMsg.classList.add('active');
+}
+
+function hideError() {
+  errorMsg.classList.remove('active');
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+</script>
+</body>
+</html>
