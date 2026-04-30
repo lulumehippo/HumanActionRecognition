@@ -35,5 +35,3 @@ model.save("model/action_model.keras")
 <<<<<<< HEAD
 
 Then copy the saved file into this `model/` folder.
-=======
->>>>>>> bc48a95 (Add result images and update README with results)
